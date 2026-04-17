@@ -175,15 +175,19 @@ class MiMotionRunner:
         return app_token
 
     # 主函数
-    def login_and_post_step(self, min_step, max_step):
+    def login_and_post_step(self, min_step, max_step, fixed_step=None):
         if self.invalid:
             return "账号或密码配置有误", False
         app_token = self.login()
         if app_token is None:
             return "登陆失败！", False
 
-        step = str(random.randint(min_step, max_step))
-        self.log_str += f"已设置为随机步数范围({min_step}~{max_step}) 随机值:{step}\n"
+        if fixed_step is not None:
+            step = str(fixed_step)
+            self.log_str += f"已设置为指定步数: {step}\n"
+        else:
+            step = str(random.randint(min_step, max_step))
+            self.log_str += f"已设置为随机步数范围({min_step}~{max_step}) 随机值:{step}\n"
         ok, msg = zeppHelper.post_fake_brand_data(step, app_token, self.user_id)
         return f"修改步数（{step}）[" + msg + "]", ok
 
@@ -195,7 +199,7 @@ def run_single_account(total, idx, user_mi, passwd_mi):
     log_str = f"[{format_now()}]\n{idx_info}账号：{desensitize_user_name(user_mi)}\n"
     try:
         runner = MiMotionRunner(user_mi, passwd_mi)
-        exec_msg, success = runner.login_and_post_step(min_step, max_step)
+        exec_msg, success = runner.login_and_post_step(min_step, max_step, fixed_step)
         log_str += runner.log_str
         log_str += f'{exec_msg}\n'
         exec_result = {"user": user_mi, "success": success,
@@ -314,6 +318,10 @@ if __name__ == "__main__":
         if users is None or passwords is None:
             print("未正确配置账号密码，无法执行")
             exit(1)
+        fixed_step = config.get('STEP')
+        if fixed_step is not None:
+            fixed_step = int(fixed_step)
+            print(f"已设置指定步数: {fixed_step}")
         min_step, max_step = get_min_max_by_time()
         use_concurrent = config.get('USE_CONCURRENT')
         if use_concurrent is not None and use_concurrent == 'True':
